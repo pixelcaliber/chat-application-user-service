@@ -1,4 +1,4 @@
-
+import uuid
 from datetime import datetime
 
 from flask import Flask, jsonify, request
@@ -8,6 +8,7 @@ from flask_jwt_extended import (JWTManager, create_access_token,
 from flask_login import UserMixin
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.dialects.postgresql import UUID
 
 from utils import (FLASK_SECRET_KEY, JWT_ACCESS_TOKEN_EXPIRES, JWT_SECRET_KEY,
                    POSTGRES_DB_URL)
@@ -24,11 +25,12 @@ bcrypt = Bcrypt(app)
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-jwt = JWTManager(app) 
+jwt = JWTManager(app)
 
 
 class User(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True)
+    # id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     username = db.Column(db.String(50), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(60), nullable=False)
@@ -49,8 +51,13 @@ def db_drop():
 
 @app.cli.command("db_seed")
 def db_seed():
-    user = User(username="admin", email="admin@example.com", password="admin_password")
-    db.session.add(user)
+    new_user = User(
+        id=uuid.uuid4(),
+        username="admin",
+        email="admin@example.com",
+        password=bcrypt.generate_password_hash("admin_password").decode("utf-8"),
+    )
+    db.session.add(new_user)
     db.session.commit()
     print("Database seeded!")
 
@@ -69,21 +76,23 @@ def register():
 
     # Hash the password before saving to the database
     hashed_password = bcrypt.generate_password_hash(data["password"]).decode("utf-8")
-
+    user_id = uuid.uuid4()
     # Create a new user
     new_user = User(
-        username=data["username"], email=data["email"], password=hashed_password
+        id=user_id,
+        username=data["username"],
+        email=data["email"],
+        password=hashed_password,
     )
     db.session.add(new_user)
     db.session.commit()
 
     # Generate access token for the new user
     access_token = create_access_token(
-        identity={"username": new_user.username, "email": new_user.email}
+        identity={"username": new_user.username, "email": new_user.email, "user_id": new_user.id}
     )
-    response = f"User: {username} is successfully registered with the access_token: {access_token}"
-    return {"Success": response}, 201
-
+    response = {"username": username, "user_id": user_id, "access_token": access_token}
+    return jsonify(response), 201
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -93,10 +102,10 @@ def login():
 
     if user and bcrypt.check_password_hash(user.password, data["password"]):
         access_token = create_access_token(
-            identity={"username": user.username, "email": user.email}
+            identity={"username": user.username, "email": user.email, "user_id": user.id}
         )
-        response = f"User: {username} is successfully logged in with the access_token: {access_token}"
-        return {"Success": response}, 200
+        response = {"username": username, "user_id": user.id, "access_token": access_token}
+        return jsonify(response), 200
     return {"error": "Invalid username or password"}, 401
 
 
@@ -107,5 +116,13 @@ def protected():
     return {"logged_in_as": current_user}, 200
 
 
+@app.route("/users/<string:username>", methods=["GET"])
+def get_user_by_username(username):
+    user = User.query.filter_by(username=username).first()
+    if user:
+        return jsonify({"username": user.username, "user_id": user.id}), 200
+    return jsonify({"message": "User not found"}), 404
+
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(port=5001, debug=True)
