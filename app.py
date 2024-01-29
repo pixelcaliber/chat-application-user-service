@@ -6,23 +6,15 @@ from functools import lru_cache
 from confluent_kafka import Producer
 from flask import Flask, json, jsonify, request
 from flask_bcrypt import Bcrypt
-from flask_jwt_extended import (
-    JWTManager,
-    create_access_token,
-    get_jwt_identity,
-    jwt_required,
-)
+from flask_jwt_extended import (JWTManager, create_access_token,
+                                get_jwt_identity, jwt_required)
 from flask_login import UserMixin
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.dialects.postgresql import UUID
 
-from utils import (
-    FLASK_SECRET_KEY,
-    JWT_ACCESS_TOKEN_EXPIRES,
-    JWT_SECRET_KEY,
-    POSTGRES_DB_URL,
-)
+from utils import (FLASK_SECRET_KEY, JWT_ACCESS_TOKEN_EXPIRES, JWT_SECRET_KEY,
+                   POSTGRES_DB_URL)
 
 logging.basicConfig(level=logging.INFO)
 
