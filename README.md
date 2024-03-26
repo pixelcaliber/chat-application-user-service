@@ -1,8 +1,11 @@
 # chat-application-user-service
 
-User mirco-service: Part of chat application, it enables secure login, signin and registration of users using JWT, also additionally provides efficient search mechanism for any user based on its username
+### User mirco-service: Part of chat application, it enables secure login, signin and registration of users using JWT, also additionally provides efficient search mechanism for any user based on its username
+### Additionally, whenever a new user registers we send a notification to them using Firebase Cloud Messaging and Kafka for scalability, based on the FCM token of users' device, refer: notification service repo for more details
 
-tech-stack: Postgres, Python, flask
+- so, this service is a producer of kafka notification events, we are pushing those events into a topic for worker to consume and generate notifications on user devices
+
+tech-stack: Postgres, Python, flask, Kafka
 
 
 ### User Service:
@@ -12,6 +15,8 @@ tech-stack: Postgres, Python, flask
 3. This service uses JWT for secure authentication and authorisation.
 4. User database is postgres that stores all the user details and credentials.
 5. Additionally, the User Service facilitates user searches by username, returning the corresponding username and user ID upon finding an exact match.
+6. Whenever new user registers we send a notification to the user using Firebase Cloud Messaging based on the FCM token of users' device, refer: notification service repo for more detials
+7. User service is a producer of kafka notification events and we push those events into a topic for worker to consume
 
 
 
